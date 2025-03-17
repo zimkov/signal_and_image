@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt6.QtGui import QPixmap, QColor, QImage
 from PyQt6.QtCore import Qt
 
-from img_convert import gray_img
+from img_convert import *
 from translate import *
 from interface import Ui_Color_Convereter
 import os
@@ -40,7 +40,7 @@ def display_image(image):
     return q_image
 
 
-def pil_image_to_qimage(pil_image):
+def pil_image_to_qimage(pil_image: Image):
     """Преобразует PIL Image в QImage."""
     # Преобразуем PIL изображение в формат RGB
     rgb_image = pil_image.convert("RGB")
@@ -53,21 +53,21 @@ def pil_image_to_qimage(pil_image):
     return qimage
 
 
-def qimage_to_pil_image(qimage):
+def qimage_to_pil_image(qimage: QImage):
     """Преобразует QImage в PIL Image."""
     # Получаем ширину и высоту изображения
     width = qimage.width()
     height = qimage.height()
 
     # Создаем пустой PIL Image
-    pil_image = Image.new("RGBA", (width, height))
+    pil_image = Image.new("RGB", (width, height))
 
     # Копируем данные из QImage в PIL Image
     qimage_data = qimage.bits()
     qimage_data.setsize(qimage.bytesPerLine() * height)
 
     # Заполняем PIL Image данными из QImage
-    pil_image.frombytes(qimage_data.asstring(), "raw", "RGBA", 0, 1)
+    pil_image.frombytes(qimage_data.asstring(), "raw", "RGB", 0, 1)
 
     return pil_image
 
@@ -134,10 +134,25 @@ class MainWindow(QMainWindow):
         self.ui.funGrayBtn.setEnabled(False)
         self.ui.funGrayBtn.clicked.connect(self.get_gray_image)
 
+        if not self.ui.gistoWidget.layout():
+            self.ui.gistoWidget.setLayout(QVBoxLayout())
+        self.plot_widget = PlotWidget()
+        self.ui.gistoWidget.layout().addWidget(self.plot_widget)
+
+        self.ui.allChannelBtn.clicked.connect(self.update_gisto_image)
+        self.ui.rChannelBtn.clicked.connect(self.update_gisto_rchannel)
+        self.ui.gChannelBtn.clicked.connect(self.update_gisto_gchannel)
+        self.ui.bChannelBtn.clicked.connect(self.update_gisto_bchannel)
+
+        self.ui.linearBtn.clicked.connect(self.update_linear)
+        self.ui.unlinearBtn.clicked.connect(self.update_unlinear)
+
     def take_color_mode(self):
         if self.mode_color:
             self.mode_color = False
         else:
+            if type(self.img) is Image:
+                self.img = pil_image_to_qimage(self.img)
             self.mode_color = True
         print(self.mode_color)
 
@@ -145,6 +160,8 @@ class MainWindow(QMainWindow):
         if self.mode_color:
             x = event.pos().x()
             y = event.pos().y()
+            if type(self.img) is not QImage:
+                self.img = pil_image_to_qimage(self.img)
             c = self.img.pixel(x, y)
             c_rgb = QColor(c).getRgb()  # 8bit RGBA: (255, 23, 0, 255)
             self.ui.color_view.setStyleSheet(
@@ -174,6 +191,7 @@ class MainWindow(QMainWindow):
                     self.ui.funGrayBtn.setEnabled(True)
                     # Отображаем информацию
                     self.ui.info_label.setText(info)
+                    self.update_gisto_image()
                 except Exception as e:
                     self.ui.info_label.setText(f"Ошибка при отображении изображения: {e}")
             else:
@@ -187,6 +205,7 @@ class MainWindow(QMainWindow):
 
             if type(self.img) is QImage:
                 self.img = qimage_to_pil_image(self.img)
+
             # Применяем изменения
             img_enhancer = ImageEnhance.Brightness(Image.open(self.path))
             self.img = img_enhancer.enhance(brightness)
@@ -199,12 +218,89 @@ class MainWindow(QMainWindow):
 
             img_qt = QPixmap(QPixmap.fromImage(pil_image_to_qimage(self.img)))
             self.ui.image_label.setPixmap(img_qt)
+            self.update_gisto_image()
+            # self.img = QImage(pil_image_to_qimage(self.img))
 
     def get_gray_image(self):
         if self.path and self.img is not None:
             img_qt = display_image(gray_img(self.path))
             self.ui.image_label.setPixmap(img_qt)
             self.img = QImage(img_qt)
+            self.update_gisto_image()
+
+    def update_gisto_image(self):
+        if self.path and self.img is not None:
+            self.plot_widget.plot(img=self.img)
+
+    def update_gisto_rchannel(self):
+        if self.path and self.img is not None:
+            self.plot_widget.plot_1channel(img=self.img, channel='r')
+
+    def update_gisto_gchannel(self):
+        if self.path and self.img is not None:
+            self.plot_widget.plot_1channel(img=self.img, channel='g')
+
+    def update_gisto_bchannel(self):
+        if self.path and self.img is not None:
+            self.plot_widget.plot_1channel(img=self.img, channel='b')
+
+    def update_linear(self):
+        cv_image = self.img
+        if type(self.img) is QImage:
+            qimage = self.img
+
+            width = qimage.width()
+            height = qimage.height()
+            ptr = qimage.bits()
+            ptr.setsize(qimage.sizeInBytes())
+
+            cv_image = np.array(ptr).reshape(height, width, 4)
+
+            cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
+
+        if type(self.img) is Image.Image:
+            pil_image = self.img
+
+            cv_image = np.array(pil_image)
+
+            if cv_image.ndim == 3:
+                if cv_image.shape[2] == 4:
+                    cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
+                else:
+                    cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
+
+        img_qt = display_image(linear_correction(cv_image, alpha=1.5, beta=30))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_unlinear(self):
+        cv_image = self.img
+        if type(self.img) is QImage:
+            qimage = self.img
+
+            width = qimage.width()
+            height = qimage.height()
+            ptr = qimage.bits()
+            ptr.setsize(qimage.sizeInBytes())
+
+            cv_image = np.array(ptr).reshape(height, width, 4)
+
+            cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
+
+        if type(self.img) is Image.Image:
+            pil_image = self.img
+
+            cv_image = np.array(pil_image)
+
+            if cv_image.ndim == 3:
+                if cv_image.shape[2] == 4:
+                    cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
+                else:
+                    cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
+
+        img_qt = display_image(gamma_correction(cv_image, gamma=2.2))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
 
     def update_colors(self, r, g, b):
         self.ui.color_view.setStyleSheet(
