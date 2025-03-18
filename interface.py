@@ -256,11 +256,29 @@ class Ui_Color_Convereter(object):
         self.unlinearBtn.setGeometry(QtCore.QRect(10, 70, 361, 28))
         self.unlinearBtn.setObjectName("unlinearBtn")
         self.tabWidget.addTab(self.tab, "")
+        self.tab_3 = QtWidgets.QWidget()
+        self.tab_3.setObjectName("tab_3")
+        self.erosBtn = QtWidgets.QPushButton(parent=self.tab_3)
+        self.erosBtn.setGeometry(QtCore.QRect(30, 10, 331, 28))
+        self.erosBtn.setObjectName("erosBtn")
+        self.dilBtn = QtWidgets.QPushButton(parent=self.tab_3)
+        self.dilBtn.setGeometry(QtCore.QRect(30, 40, 331, 28))
+        self.dilBtn.setObjectName("dilBtn")
+        self.openmorphBtn = QtWidgets.QPushButton(parent=self.tab_3)
+        self.openmorphBtn.setGeometry(QtCore.QRect(30, 70, 331, 28))
+        self.openmorphBtn.setObjectName("openmorphBtn")
+        self.closemorphBtn = QtWidgets.QPushButton(parent=self.tab_3)
+        self.closemorphBtn.setGeometry(QtCore.QRect(30, 100, 331, 28))
+        self.closemorphBtn.setObjectName("closemorphBtn")
+        self.gradBtn = QtWidgets.QPushButton(parent=self.tab_3)
+        self.gradBtn.setGeometry(QtCore.QRect(30, 130, 331, 28))
+        self.gradBtn.setObjectName("gradBtn")
+        self.tabWidget.addTab(self.tab_3, "")
         self.dockWidget_3.setWidget(self.dockWidgetContents)
         Color_Convereter.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget_3)
 
         self.retranslateUi(Color_Convereter)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(Color_Convereter)
 
     def retranslateUi(self, Color_Convereter):
@@ -303,6 +321,12 @@ class Ui_Color_Convereter(object):
         self.linearBtn.setText(_translate("Color_Convereter", "Линейная коррекция"))
         self.unlinearBtn.setText(_translate("Color_Convereter", "Нелинейная коррекция"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("Color_Convereter", "Преобразования"))
+        self.erosBtn.setText(_translate("Color_Convereter", "Эрозия"))
+        self.dilBtn.setText(_translate("Color_Convereter", "Дилатация"))
+        self.openmorphBtn.setText(_translate("Color_Convereter", "Открытие"))
+        self.closemorphBtn.setText(_translate("Color_Convereter", "Закрытие"))
+        self.gradBtn.setText(_translate("Color_Convereter", "Градиент"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("Color_Convereter", "Морфологические операции"))
 
 
 if __name__ == "__main__":

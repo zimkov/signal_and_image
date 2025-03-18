@@ -7,6 +7,7 @@ from PyQt6.QtGui import QPixmap, QColor, QImage
 from PyQt6.QtCore import Qt
 
 from img_convert import *
+from morph import *
 from translate import *
 from interface import Ui_Color_Convereter
 import os
@@ -147,6 +148,12 @@ class MainWindow(QMainWindow):
         self.ui.linearBtn.clicked.connect(self.update_linear)
         self.ui.unlinearBtn.clicked.connect(self.update_unlinear)
 
+        self.ui.erosBtn.clicked.connect(self.update_erosian)
+        self.ui.dilBtn.clicked.connect(self.update_dilation)
+        self.ui.openmorphBtn.clicked.connect(self.update_opening)
+        self.ui.closemorphBtn.clicked.connect(self.update_closing)
+        self.ui.gradBtn.clicked.connect(self.update_gradient)
+
     def take_color_mode(self):
         if self.mode_color:
             self.mode_color = False
@@ -244,7 +251,7 @@ class MainWindow(QMainWindow):
         if self.path and self.img is not None:
             self.plot_widget.plot_1channel(img=self.img, channel='b')
 
-    def update_linear(self):
+    def img_to_cvimg(self):
         cv_image = self.img
         if type(self.img) is QImage:
             qimage = self.img
@@ -268,37 +275,54 @@ class MainWindow(QMainWindow):
                     cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
                 else:
                     cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
+        return cv_image
+
+    def update_linear(self):
+        cv_image = self.img_to_cvimg()
 
         img_qt = display_image(linear_correction(cv_image, alpha=1.5, beta=30))
         self.ui.image_label.setPixmap(img_qt)
         self.img = QImage(img_qt)
 
     def update_unlinear(self):
-        cv_image = self.img
-        if type(self.img) is QImage:
-            qimage = self.img
-
-            width = qimage.width()
-            height = qimage.height()
-            ptr = qimage.bits()
-            ptr.setsize(qimage.sizeInBytes())
-
-            cv_image = np.array(ptr).reshape(height, width, 4)
-
-            cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
-
-        if type(self.img) is Image.Image:
-            pil_image = self.img
-
-            cv_image = np.array(pil_image)
-
-            if cv_image.ndim == 3:
-                if cv_image.shape[2] == 4:
-                    cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
-                else:
-                    cv_image = cv2.cvtColor(cv_image, cv2.IMREAD_GRAYSCALE)
+        cv_image = self.img_to_cvimg()
 
         img_qt = display_image(gamma_correction(cv_image, gamma=2.2))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_erosian(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(erosion(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_dilation(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(dilation(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_opening(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(opening(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_closing(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(closing(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_gradient(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(gradient(cv_image))
         self.ui.image_label.setPixmap(img_qt)
         self.img = QImage(img_qt)
 
