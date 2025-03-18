@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt6.QtGui import QPixmap, QColor, QImage
 from PyQt6.QtCore import Qt
 
+from filter import *
 from img_convert import *
 from morph import *
 from translate import *
@@ -153,6 +154,13 @@ class MainWindow(QMainWindow):
         self.ui.openmorphBtn.clicked.connect(self.update_opening)
         self.ui.closemorphBtn.clicked.connect(self.update_closing)
         self.ui.gradBtn.clicked.connect(self.update_gradient)
+
+        self.ui.filter1Btn.clicked.connect(self.update_sharpening)
+        self.ui.filter2Btn.clicked.connect(self.update_motion_blur)
+        self.ui.filter3Btn.clicked.connect(self.update_emboss)
+        self.ui.filter4Btn.clicked.connect(self.update_median_blur)
+        self.ui.filter5Btn.clicked.connect(self.update_detector_canny)
+        self.ui.filter6Btn.clicked.connect(self.update_operator_roberts)
 
     def take_color_mode(self):
         if self.mode_color:
@@ -323,6 +331,48 @@ class MainWindow(QMainWindow):
         cv_image = self.img_to_cvimg()
 
         img_qt = display_image(gradient(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_sharpening(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(sharpening(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_motion_blur(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(motion_blur(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_emboss(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(emboss(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_median_blur(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(median_blur(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_detector_canny(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(detector_canny(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_operator_roberts(self):
+        cv_image = self.img_to_cvimg()
+
+        img_qt = display_image(operator_roberts(cv_image))
         self.ui.image_label.setPixmap(img_qt)
         self.img = QImage(img_qt)
 

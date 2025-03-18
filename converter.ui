@@ -651,7 +651,7 @@ border-radius: 15px;</string>
       </rect>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
@@ -925,6 +925,89 @@ border-radius: 15px;</string>
        </property>
        <property name="text">
         <string>Градиент</string>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="tab_4">
+      <attribute name="title">
+       <string>Фильтры</string>
+      </attribute>
+      <widget class="QPushButton" name="filter1Btn">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>361</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Повышение резкости</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="filter2Btn">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>40</y>
+         <width>361</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Размытие в движении</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="filter3Btn">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>70</y>
+         <width>361</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Тиснение</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="filter4Btn">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>100</y>
+         <width>361</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Медианная фильтрация</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="filter5Btn">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>130</y>
+         <width>361</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Детектор Canny</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="filter6Btn">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>160</y>
+         <width>361</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Оператор Робертса</string>
        </property>
       </widget>
      </widget>
