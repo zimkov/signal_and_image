@@ -1,11 +1,11 @@
 import sys
 
-import cv2
 from PIL import Image, ImageEnhance
 from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt6.QtGui import QPixmap, QColor, QImage
 from PyQt6.QtCore import Qt
 
+from detector import *
 from filter import *
 from img_convert import *
 from morph import *
@@ -83,6 +83,12 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)  # Настраиваем интерфейс
         self.mode_color = False
         self.path = None
+        self.arrayImg = []
+        self.arrayImgLabel = [
+            self.ui.image_1, self.ui.image_2, self.ui.image_3, self.ui.image_4, self.ui.image_5,
+            self.ui.image_6, self.ui.image_7, self.ui.image_8, self.ui.image_9, self.ui.image_10
+        ]
+        self.numImg = 0
 
         self.ui.pushButton.clicked.connect(self.open_file_dialog)
 
@@ -162,6 +168,14 @@ class MainWindow(QMainWindow):
         self.ui.filter5Btn.clicked.connect(self.update_detector_canny)
         self.ui.filter6Btn.clicked.connect(self.update_operator_roberts)
 
+        self.ui.detector1Btn.clicked.connect(self.update_detector_harris)
+        self.ui.detector2Btn.clicked.connect(self.update_detector_sift)
+        self.ui.detector3Btn.clicked.connect(self.update_detector_surf)
+        self.ui.detector4Btn.clicked.connect(self.update_detector_fast)
+
+        self.ui.chooseImagesBtn.clicked.connect(self.add_img)
+        self.ui.twice_image.clicked.connect(self.update_sim_img)
+
     def take_color_mode(self):
         if self.mode_color:
             self.mode_color = False
@@ -211,6 +225,38 @@ class MainWindow(QMainWindow):
                     self.ui.info_label.setText(f"Ошибка при отображении изображения: {e}")
             else:
                 self.ui.info_label.setText(info)
+
+    def add_img(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Выберите изображение", "",
+                                                   "Images (*.png *.jpg *.jpeg *.bmp *.gif)")
+
+        if file_path:
+            img, info = get_image_info(file_path)
+            if img:
+                # Отображаем изображение
+                try:
+                    self.arrayImg.append(QImage(file_path))
+                    img_qt = (QPixmap(QPixmap.fromImage(self.arrayImg[self.numImg]))
+                              .scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio))
+                    self.arrayImgLabel[self.numImg].setPixmap(img_qt)
+                    if self.numImg < 9:
+                        self.numImg += 1
+                    else:
+                        self.ui.chooseImagesBtn.setEnabled(False)
+                except Exception as e:
+                    self.ui.info_label.setText(f"Ошибка при отображении изображения: {e}")
+            else:
+                self.ui.info_label.setText(info)
+
+    def update_sim_img(self):
+        for i in range(len(self.arrayImg)):
+            self.arrayImg[i] = qimage_to_cv2(self.arrayImg[i])
+
+        img1, img2 = find_sim(self.arrayImg)
+        img_qt1 = display_image(self.arrayImg[img1]).scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio)
+        self.ui.image_result1.setPixmap(img_qt1)
+        img_qt2 = display_image(self.arrayImg[img2]).scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio)
+        self.ui.image_result2.setPixmap(img_qt2)
 
     def update_filter_image(self):
         if self.img:
@@ -373,6 +419,30 @@ class MainWindow(QMainWindow):
         cv_image = self.img_to_cvimg()
 
         img_qt = display_image(operator_roberts(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_detector_harris(self):
+        cv_image = self.img_to_cvimg()
+        img_qt = display_image(detector_harris(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_detector_sift(self):
+        cv_image = self.img_to_cvimg()
+        img_qt = display_image(detector_sift(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_detector_surf(self):
+        cv_image = self.img_to_cvimg()
+        img_qt = display_image(detector_surf(cv_image))
+        self.ui.image_label.setPixmap(img_qt)
+        self.img = QImage(img_qt)
+
+    def update_detector_fast(self):
+        cv_image = self.img_to_cvimg()
+        img_qt = display_image(detector_fast(cv_image))
         self.ui.image_label.setPixmap(img_qt)
         self.img = QImage(img_qt)
 

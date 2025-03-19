@@ -1,18 +1,37 @@
 import cv2
 import numpy as np
-from scipy import ndimage
 
-roberts_cross_v = np.array([[1, 0],
-                            [0, -1]])
+cap = cv2.VideoCapture(0)  # Или путь к видеофайлу
 
-roberts_cross_h = np.array([[0, 1],
-                            [-1, 0]])
+backSub = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=16, detectShadows=True)
 
-img = cv2.imread(r"C:\Users\Admin\Desktop\Alexei\pythonProjects\testPyQT\signal_and_image\img\2.jpg", 0).astype('float64')
-img /= 255.0
-vertical = ndimage.convolve(img, roberts_cross_v)
-horizontal = ndimage.convolve(img, roberts_cross_h)
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
 
-edged_img = np.sqrt(np.square(horizontal) + np.square(vertical))
-edged_img *= 255
-cv2.imwrite("output.jpg", edged_img)
+    # Увеличение контрастности
+    alpha = 1.5
+    beta = 0
+    frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
+
+    fgMask = backSub.apply(frame)
+
+    # Морфологические операции для очистки маски
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 1))
+    fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_OPEN, kernel)
+    fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel)
+
+    # Применение маски к оригинальному кадру
+    result = cv2.bitwise_and(frame, frame, mask=fgMask)
+
+    # Отображение результатов
+    cv2.imshow('Frame', frame)
+    cv2.imshow('FG Mask', fgMask)
+    cv2.imshow('Result', result)
+
+    if cv2.waitKey(30) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
