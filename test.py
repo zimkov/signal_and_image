@@ -1,37 +1,40 @@
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture(0)  # Или путь к видеофайлу
+backSub_mog = cv2.createBackgroundSubtractorMOG2()
 
-backSub = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=16, detectShadows=True)
+# Open camera
+cap = cv2.VideoCapture(0)
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
+    # Read image
+    ret, img = cap.read()
+    img = cv2.resize(img, (640, 480))
+
+    # Apply background subtraction
+    fg_mask = backSub_mog.apply(img)
+
+    # Find contours
+    contours, hierarchy = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Define minimum contour area
+    min_contour_area = 5000
+    large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_contour_area]
+
+    # Create a mask for the large contours
+    mask = np.zeros_like(img)  # Create a black mask
+    cv2.drawContours(mask, large_contours, -1, (255, 255, 255),
+                     thickness=cv2.FILLED)  # Fill the mask with white for the contours
+
+    # Bitwise AND to keep only the moving objects
+    frame_out = cv2.bitwise_and(img, mask)
+
+    # Show the final frame
+    cv2.imshow('Frame_final', frame_out)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-    # Увеличение контрастности
-    alpha = 1.5
-    beta = 0
-    frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
-
-    fgMask = backSub.apply(frame)
-
-    # Морфологические операции для очистки маски
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 1))
-    fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_OPEN, kernel)
-    fgMask = cv2.morphologyEx(fgMask, cv2.MORPH_CLOSE, kernel)
-
-    # Применение маски к оригинальному кадру
-    result = cv2.bitwise_and(frame, frame, mask=fgMask)
-
-    # Отображение результатов
-    cv2.imshow('Frame', frame)
-    cv2.imshow('FG Mask', fgMask)
-    cv2.imshow('Result', result)
-
-    if cv2.waitKey(30) & 0xFF == ord('q'):
-        break
-
+# Close camera
 cap.release()
 cv2.destroyAllWindows()

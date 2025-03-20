@@ -1,6 +1,231 @@
 import cv2
 import numpy as np
 
+from PyQt6.QtWidgets import QWidget, QPushButton, \
+    QHBoxLayout, QVBoxLayout, QStyle, QSlider, QFileDialog, QProgressDialog
+from PyQt6.QtGui import QIcon
+from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtMultimediaWidgets import QVideoWidget
+
+
+class VideoPlayer(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.video_path = None
+        self.setGeometry(200, 200, 700, 400)
+        self.setWindowTitle("PyQt Media Player")
+        self.setWindowIcon(QIcon('player.ico'))
+
+        self.mediaplayer = QMediaPlayer()
+        self.audio = QAudioOutput()
+
+        videowidget = QVideoWidget()
+
+        # btn for opening
+        openBtn = QPushButton("Open Video")
+        openBtn.clicked.connect(self.open_video)
+
+        # btn for palying
+        self.playBtn = QPushButton()
+        self.playBtn.setEnabled(False)
+        self.playBtn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
+        self.playBtn.clicked.connect(self.play_video)
+
+        # slider
+        self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setRange(0, 0)
+        self.slider.sliderMoved.connect(self.set_position)
+
+        hbox = QHBoxLayout()
+
+        hbox.addWidget(openBtn)
+        hbox.addWidget(self.playBtn)
+        hbox.addWidget(self.slider)
+
+        vbox = QVBoxLayout()
+
+        vbox.addWidget(videowidget)
+        vbox.addLayout(hbox)
+
+        self.setLayout(vbox)
+
+        self.mediaplayer.setVideoOutput(videowidget)
+        self.mediaplayer.setAudioOutput(self.audio)
+
+        # media player signals
+        self.mediaplayer.mediaStatusChanged.connect(self.mediastate_changed)
+        self.mediaplayer.positionChanged.connect(self.position_changed)
+        self.mediaplayer.durationChanged.connect(self.duration_changed)
+
+    def open_video(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Open Video")
+
+        if filename != '':
+            self.video_path = filename
+            self.mediaplayer.setSource(QUrl.fromLocalFile(filename))
+            self.playBtn.setEnabled(True)
+
+    def open_video_path(self, path):
+        self.mediaplayer.setSource(QUrl.fromLocalFile(path))
+        self.playBtn.setEnabled(True)
+
+    def play_video(self):
+        if self.mediaplayer.mediaStatus == QMediaPlayer.PlaybackState.PlayingState:
+            self.mediaplayer.pause()
+
+        else:
+            self.mediaplayer.play()
+
+    def mediastate_changed(self):
+        if self.mediaplayer.mediaStatus == QMediaPlayer.PlaybackState.PlayingState:
+            self.playBtn.setIcon(
+                self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPause)
+            )
+
+        else:
+            self.playBtn.setIcon(
+                self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
+            )
+
+    def position_changed(self, position):
+        self.slider.setValue(position)
+
+    def duration_changed(self, duration):
+        self.slider.setRange(0, duration)
+
+    def set_position(self, position):
+        self.mediaplayer.setPosition(position)
+
+    def delete_back(self):
+        file_path = self.video_path
+        out_path = r'.\img\result.mp4'
+        video = cv2.VideoCapture(file_path)
+
+        frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = video.get(cv2.CAP_PROP_FPS)
+
+        out = cv2.VideoWriter(out_path, 14, fps, (frame_width, frame_height))
+
+        subtractor = cv2.createBackgroundSubtractorKNN(500, 200)
+        nframe = 0
+        progress_bar = QProgressDialog()
+        progress_bar.create()
+        progress_bar.setLabelText('Обработка видео...')
+        progress_bar.setMinimum(0)
+        progress_bar.setMaximum(int(video.get(cv2.CAP_PROP_FRAME_COUNT)))
+        while True:
+            ret, frame = video.read()
+
+            progress_bar.setValue(nframe)
+            nframe += 1
+            if not ret:
+                break
+
+            if progress_bar.wasCanceled():
+                break
+
+            if ret:
+                mask = subtractor.apply(frame)
+
+                mask_colored = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+
+                result = cv2.bitwise_and(frame, mask_colored)
+                out.write(result)
+                # cv2.imshow('mask', mask)
+                # cv2.imshow('Result', result)
+
+                if cv2.waitKey(5) == ord('q'):
+                    break
+            else:
+                video = cv2.VideoCapture(file_path)
+
+        cv2.destroyAllWindows()
+        video.release()
+
+        self.open_video_path(out_path)
+
+    def motion_blur(self):
+        file_path = self.video_path
+        out_path = r'.\img\result.mp4'
+        video = cv2.VideoCapture(file_path)
+
+        frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = video.get(cv2.CAP_PROP_FPS)
+
+        out = cv2.VideoWriter(out_path, 14, fps, (frame_width, frame_height))
+
+        backSub_mog = cv2.createBackgroundSubtractorMOG2()
+        nframe = 0
+        progress_bar = QProgressDialog()
+        progress_bar.create()
+        progress_bar.setLabelText('Обработка видео...')
+        progress_bar.setMinimum(0)
+        progress_bar.setMaximum(int(video.get(cv2.CAP_PROP_FRAME_COUNT)))
+        while True:
+            # Read image
+            ret, img = video.read()
+            img = cv2.resize(img, (640, 480))
+
+            progress_bar.setValue(nframe)
+            nframe += 1
+            if not ret:
+                break
+
+            if progress_bar.wasCanceled():
+                break
+
+            # Apply background subtraction
+            fg_mask = backSub_mog.apply(img)
+
+            # Find contours
+            contours, hierarchy = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            # Define minimum contour area
+            min_contour_area = 5000
+            large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_contour_area]
+
+            # Create a mask for the large contours
+            mask = np.zeros_like(img, dtype=np.uint8)  # Create a black mask
+            cv2.drawContours(mask, large_contours, -1, (255, 255, 255),
+                             thickness=cv2.FILLED)  # Fill the mask with white for the contours
+
+            # Create a blurred version of the original image using motion blur technique
+            kernel_size = 15  # Adjust this for more or less blur
+            kernel = np.zeros((kernel_size, kernel_size), dtype=np.float32)
+
+            # Create a motion blur kernel
+            for i in range(kernel_size):
+                kernel[i, :] = np.ones(kernel_size)  # Horizontal motion blur
+
+            kernel /= kernel_size * kernel_size  # Normalize the kernel
+
+            blurred_img = cv2.filter2D(img, -1, kernel)
+
+            # Invert the mask to keep the background sharp
+            inverted_mask = cv2.bitwise_not(mask)
+
+            # Use the inverted mask to combine the sharp background with the blurred moving objects
+            sharp_background = cv2.bitwise_and(img, inverted_mask)
+            blurred_moving_objects = cv2.bitwise_and(blurred_img, mask)
+
+            # Combine both images
+            final_output = cv2.add(sharp_background, blurred_moving_objects)
+
+            # Show the final frame
+            cv2.imshow('Frame_final', final_output)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        # Close camera
+        video.release()
+        cv2.destroyAllWindows()
+
+        self.open_video_path(out_path)
+
 
 def detector_harris(image):
     if image is None:

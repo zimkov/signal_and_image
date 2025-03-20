@@ -147,6 +147,11 @@ class MainWindow(QMainWindow):
         self.plot_widget = PlotWidget()
         self.ui.gistoWidget.layout().addWidget(self.plot_widget)
 
+        if not self.ui.widget.layout():
+            self.ui.widget.setLayout(QVBoxLayout())
+        self.video_widget = VideoPlayer()
+        self.ui.widget.layout().addWidget(self.video_widget)
+
         self.ui.allChannelBtn.clicked.connect(self.update_gisto_image)
         self.ui.rChannelBtn.clicked.connect(self.update_gisto_rchannel)
         self.ui.gChannelBtn.clicked.connect(self.update_gisto_gchannel)
@@ -175,6 +180,7 @@ class MainWindow(QMainWindow):
 
         self.ui.chooseImagesBtn.clicked.connect(self.add_img)
         self.ui.twice_image.clicked.connect(self.update_sim_img)
+        self.ui.deleteBackground.clicked.connect(self.delete_background)
 
     def take_color_mode(self):
         if self.mode_color:
@@ -480,6 +486,9 @@ class MainWindow(QMainWindow):
         self.ui.ycc_y.setValue(ycc[0])
         self.ui.ycc_cb.setValue(ycc[1])
         self.ui.ycc_cr.setValue(ycc[2])
+
+    def delete_background(self):
+        self.video_widget.delete_back()
 
 
 if __name__ == "__main__":
