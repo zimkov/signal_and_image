@@ -18,7 +18,7 @@ while True:
     contours, hierarchy = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Define minimum contour area
-    min_contour_area = 5000
+    min_contour_area = 150
     large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_contour_area]
 
     # Create a mask for the large contours

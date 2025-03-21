@@ -181,6 +181,7 @@ class MainWindow(QMainWindow):
         self.ui.chooseImagesBtn.clicked.connect(self.add_img)
         self.ui.twice_image.clicked.connect(self.update_sim_img)
         self.ui.deleteBackground.clicked.connect(self.delete_background)
+        self.ui.motionBlur.clicked.connect(self.motion_blur_video)
 
     def take_color_mode(self):
         if self.mode_color:
@@ -489,6 +490,9 @@ class MainWindow(QMainWindow):
 
     def delete_background(self):
         self.video_widget.delete_back()
+
+    def motion_blur_video(self):
+        self.video_widget.motion_blur()
 
 
 if __name__ == "__main__":

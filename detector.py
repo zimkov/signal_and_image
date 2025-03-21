@@ -23,7 +23,7 @@ class VideoPlayer(QWidget):
         videowidget = QVideoWidget()
 
         # btn for opening
-        openBtn = QPushButton("Open Video")
+        openBtn = QPushButton("Открыть видео")
         openBtn.clicked.connect(self.open_video)
 
         # btn for palying
@@ -99,7 +99,7 @@ class VideoPlayer(QWidget):
 
     def delete_back(self):
         file_path = self.video_path
-        out_path = r'.\img\result.mp4'
+        out_path = r'.\img\no_background.mp4'
         video = cv2.VideoCapture(file_path)
 
         frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -108,7 +108,7 @@ class VideoPlayer(QWidget):
 
         out = cv2.VideoWriter(out_path, 14, fps, (frame_width, frame_height))
 
-        subtractor = cv2.createBackgroundSubtractorKNN(500, 200)
+        backSub_mog = cv2.createBackgroundSubtractorKNN()
         nframe = 0
         progress_bar = QProgressDialog()
         progress_bar.create()
@@ -127,16 +127,27 @@ class VideoPlayer(QWidget):
                 break
 
             if ret:
-                mask = subtractor.apply(frame)
+                fg_mask = backSub_mog.apply(frame)
 
-                mask_colored = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+                # Find contours
+                contours, hierarchy = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-                result = cv2.bitwise_and(frame, mask_colored)
-                out.write(result)
-                # cv2.imshow('mask', mask)
-                # cv2.imshow('Result', result)
+                # Define minimum contour area
+                min_contour_area = 200
+                large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_contour_area]
 
-                if cv2.waitKey(5) == ord('q'):
+                # Create a mask for the large contours
+                mask = np.zeros_like(frame)  # Create a black mask
+                cv2.drawContours(mask, large_contours, -1, (255, 255, 255),
+                                 thickness=cv2.FILLED)  # Fill the mask with white for the contours
+
+                # Bitwise AND to keep only the moving objects
+                frame_out = cv2.bitwise_and(frame, mask)
+                out.write(frame_out)
+                # Show the final frame
+                # cv2.imshow('Frame_final', frame_out)
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             else:
                 video = cv2.VideoCapture(file_path)
@@ -148,7 +159,7 @@ class VideoPlayer(QWidget):
 
     def motion_blur(self):
         file_path = self.video_path
-        out_path = r'.\img\result.mp4'
+        out_path = r'.\img\blur.mp4'
         video = cv2.VideoCapture(file_path)
 
         frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -167,7 +178,6 @@ class VideoPlayer(QWidget):
         while True:
             # Read image
             ret, img = video.read()
-            img = cv2.resize(img, (640, 480))
 
             progress_bar.setValue(nframe)
             nframe += 1
@@ -177,48 +187,43 @@ class VideoPlayer(QWidget):
             if progress_bar.wasCanceled():
                 break
 
-            # Apply background subtraction
-            fg_mask = backSub_mog.apply(img)
+            if ret:
+                fg_mask = backSub_mog.apply(img)
 
-            # Find contours
-            contours, hierarchy = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                contours, hierarchy = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            # Define minimum contour area
-            min_contour_area = 5000
-            large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_contour_area]
+                min_contour_area = 5000
+                large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_contour_area]
 
-            # Create a mask for the large contours
-            mask = np.zeros_like(img, dtype=np.uint8)  # Create a black mask
-            cv2.drawContours(mask, large_contours, -1, (255, 255, 255),
-                             thickness=cv2.FILLED)  # Fill the mask with white for the contours
+                mask = np.zeros_like(img, dtype=np.uint8)
+                cv2.drawContours(mask, large_contours, -1, (255, 255, 255),
+                                 thickness=cv2.FILLED)
 
-            # Create a blurred version of the original image using motion blur technique
-            kernel_size = 15  # Adjust this for more or less blur
-            kernel = np.zeros((kernel_size, kernel_size), dtype=np.float32)
+                kernel_size = 15
+                kernel = np.zeros((kernel_size, kernel_size), dtype=np.float32)
 
-            # Create a motion blur kernel
-            for i in range(kernel_size):
-                kernel[i, :] = np.ones(kernel_size)  # Horizontal motion blur
+                for i in range(kernel_size):
+                    kernel[i, :] = np.ones(kernel_size)
 
-            kernel /= kernel_size * kernel_size  # Normalize the kernel
+                kernel /= kernel_size * kernel_size
 
-            blurred_img = cv2.filter2D(img, -1, kernel)
+                blurred_img = cv2.filter2D(img, -1, kernel)
 
-            # Invert the mask to keep the background sharp
-            inverted_mask = cv2.bitwise_not(mask)
+                inverted_mask = cv2.bitwise_not(mask)
 
-            # Use the inverted mask to combine the sharp background with the blurred moving objects
-            sharp_background = cv2.bitwise_and(img, inverted_mask)
-            blurred_moving_objects = cv2.bitwise_and(blurred_img, mask)
+                sharp_background = cv2.bitwise_and(img, inverted_mask)
+                blurred_moving_objects = cv2.bitwise_and(blurred_img, mask)
 
-            # Combine both images
-            final_output = cv2.add(sharp_background, blurred_moving_objects)
+                # Combine both images
+                final_output = cv2.add(sharp_background, blurred_moving_objects)
+                out.write(final_output)
+                # Show the final frame
+                # cv2.imshow('Frame_final', final_output)
 
-            # Show the final frame
-            cv2.imshow('Frame_final', final_output)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            else:
+                video = cv2.VideoCapture(file_path)
 
         # Close camera
         video.release()
